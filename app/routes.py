@@ -52,17 +52,12 @@ def post_books():
 
 @books_bp.route("/<book_id>", methods=["GET", "PUT", "DELETE"])
 def handle_book(book_id):
-    book_id = int(book_id)
     book = Book.query.get(book_id)
     if not book:
-            return "Book not found", 404
+            return jsonify("Book not found"), 404
 
     if request.method == "GET":
-        return make_response({
-            "id": book.id,
-            "title": book.title,
-            "description": book.description
-        }, 200)
+        return jsonify(book.convert_dict()), 200
     
     elif request.method == "PUT":
         # Get new data
