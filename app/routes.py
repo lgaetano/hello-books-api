@@ -1,40 +1,55 @@
 from app import db
 from app.models.book import Book
-from flask import Blueprint, json, jsonify, make_response, request
+from flask import Blueprint, abort, json, jsonify, make_response, request
 
 books_bp = Blueprint("books", __name__, url_prefix="/books")
 authors_bp = Blueprint("authors", __name__, url_prefix="/authors")
 
-@books_bp.route("", methods=["GET", "POST"])
-def handle_books():
-    if request.method == "GET":
-        books = Book.query.all()
-        if not books:
-            return "No books in list", 404
 
-        books_response = []
+# def sanitize_data(input_data):
+#     data_types = {
+#         “name”: str, 
+#         “breed”: str, 
+#         “age”: int
+#         }
 
-        for book in books:
-            books_response.append({
-                "id": book.id,
-                "title": book.title,
-                "description": book.description
-            })
-        return jsonify(books_response), 200
+#     for name, val_type in data_types.items():
+#         try:
+#             val = input_data[name]
+#             type_test = val_type(val)
+#         except Exception as e:
+#             print(e)
+#             raise abort(400, “bad data”)
+
+#     return input_data
 
 
-    elif request.method == "POST":
-        request_body = request.get_json()
-        if "title" not in request_body or "description" not in request_body:
-            return make_response("Invalid request.", 400)
-        
-        new_book = Book(title=request_body["title"],
-                        description=request_body["description"])
+@books_bp.route("", methods=["GET"])
+def get_books():
+    books = Book.query.all()
+    if not books:
+        return "No books in list", 404
 
-        db.session.add(new_book)
-        db.session.commit()
+    books_response = []
+    for book in books:
+        books_response.append(book.convert_dict())
+    
+    return jsonify(books_response), 200
 
-        return make_response(f"Book {new_book.title} successfully created",
+
+@books_bp.route("", methods=["POST"])
+def post_books():
+    request_body = request.get_json()
+    if "title" not in request_body or "description" not in request_body:
+        return make_response("Invalid request.", 400)
+    
+    new_book = Book(title=request_body["title"],
+                    description=request_body["description"])
+
+    db.session.add(new_book)
+    db.session.commit()
+
+    return make_response(f"Book {new_book.title} successfully created",
                             201)
 
 @books_bp.route("/<book_id>", methods=["GET", "PUT", "DELETE"])

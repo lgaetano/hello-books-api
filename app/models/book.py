@@ -6,3 +6,11 @@ class Book(db.Model):
     title = db.Column(db.String)
     # author_id = db.Column(db.Integer, db.ForeignKey(Author.id), nullable=False)
     description = db.Column(db.String)
+
+    def convert_dict(self):
+        """Formats object attributes into dictionary."""
+        return {
+                "id": self.id,
+                "title": self.title,
+                "description": self.description
+            }
