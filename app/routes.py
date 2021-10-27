@@ -26,13 +26,18 @@ authors_bp = Blueprint("authors", __name__, url_prefix="/authors")
 
 @books_bp.route("", methods=["GET"])
 def get_books():
-    books = Book.query.all()
+    title = request.args.get("title")
+    if title:
+        books = Book.query.filter_by(title=title)
+    else:
+        books = Book.query.all()
+    
     if not books:
         return "No books in list", 404
 
     books_response = []
     for book in books:
-        books_response.append(book.convert_dict())
+        books_response.append(book.to_dict())
     
     return jsonify(books_response), 200
 
@@ -45,39 +50,42 @@ def post_books():
     
     new_book = Book(title=request_body["title"],
                     description=request_body["description"])
-
+    
+    db.session.add(new_book)
     db.session.commit()
 
-    return jsonify(f"Book {new_book.title} successfully created"), 201
+    return jsonify(f"Book {new_book.title} created successfully."), 201
 
-@books_bp.route("/<book_id>", methods=["GET", "PUT", "DELETE"])
+@books_bp.route("/<book_id>", methods=["GET", "PUT", "PATCH", "DELETE"])
 def handle_book(book_id):
     book = Book.query.get(book_id)
     if not book:
             return jsonify("Book not found"), 404
 
     if request.method == "GET":
-        return jsonify(book.convert_dict()), 200
+        return jsonify(book.to_dict()), 200
+
+    elif request.method == "PATCH":
+        form_data = request.get_json()
+        book.update_from_dict(form_data)
+
+        db.session.commit()
+        return jsonify(f"Book #{book.id} updated successfully."), 200
     
     elif request.method == "PUT":
         # Get new data
-        request_body = request.get_json()
-
-        if ("title" not in request_body) or ("description" not in request_body):
-            return make_response("Invalid request.", 400)
-        
-        book.title=request_body["title"]
-        book.description=request_body["description"]
+        form_data = request.get_json()
+        try:
+            book.replace_from_dict(form_data)
+        except ValueError:
+            return jsonify("Invalid request.", 400)
     
         db.session.commit()
-
-        return make_response(
-            f"Book #{book.id} successfully updated.", 201
-            )
+        return jsonify(f"Book #{book.id} updated successfully."), 201
 
         # Q: db.session.add() # Why is there no db.session add here?
 
     elif request.method == "DELETE":
         db.session.delete(book)
         db.session.commit()
-        return make_response(f"Book #{book.id} successfully deleted", 200)
+        return jsonify(f"Book #{book.id} deleted successfully."), 200
