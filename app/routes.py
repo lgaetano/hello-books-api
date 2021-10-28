@@ -44,12 +44,12 @@ def get_books():
 
 @books_bp.route("", methods=["POST"])
 def post_books():
-    request_body = request.get_json()
-    if "title" not in request_body or "description" not in request_body:
+    form_data = request.get_json()
+    if "title" not in form_data or "description" not in form_data:
         return make_response("Invalid request.", 400)
     
-    new_book = Book(title=request_body["title"],
-                    description=request_body["description"])
+    new_book = Book(title=form_data["title"],
+                    description=form_data["description"])
     
     db.session.add(new_book)
     db.session.commit()
