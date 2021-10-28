@@ -30,5 +30,5 @@ def two_saved_books(app):
     mountain_book = Book(title="Mountain Book",
                         description="Cliffs")
 
-    db.session.add_all(ocean_book, mountain_book)
+    db.session.add_all([ocean_book, mountain_book])
     db.session.commit()
