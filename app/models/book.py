@@ -1,11 +1,11 @@
 from app import db
-from author import Author
 
 class Book(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     title = db.Column(db.String)
     description = db.Column(db.String)
-    authors = db.relationship("Author", back_populates="book")
+    author_id = db.Column(db.Integer, db.ForeignKey('author.id'))
+    author = db.relationship("Author", back_populates="book")
 
     COLUMNS = ["title", "description"]
 
