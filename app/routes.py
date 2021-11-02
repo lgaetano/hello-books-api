@@ -1,5 +1,6 @@
 from app import db
 from app.models.book import Book
+from app.models.author import Author
 from flask import Blueprint, abort, json, jsonify, make_response, request
 
 books_bp = Blueprint("books", __name__, url_prefix="/books")
@@ -54,13 +55,13 @@ def post_books():
     db.session.add(new_book)
     db.session.commit()
 
-    return jsonify(f"Book {new_book.title} created successfully."), 201
+    return jsonify(new_book.to_dict()), 201
 
 @books_bp.route("/<book_id>", methods=["GET", "PUT", "PATCH", "DELETE"])
 def handle_book(book_id):
     book = Book.query.get(book_id)
     if not book:
-            return jsonify("Book not found"), 404
+            return make_response("Book not found", 404)
 
     if request.method == "GET":
         return jsonify(book.to_dict()), 200
@@ -89,3 +90,20 @@ def handle_book(book_id):
         db.session.delete(book)
         db.session.commit()
         return jsonify(f"Book #{book.id} deleted successfully."), 200
+
+    @authors_bp.route("", methods=["GET"])
+    def get_authors():
+        author_name = request.args.get("name")
+
+        if author_name:
+            authors = Author.query.filter_by(name=author_name)
+
+        else:
+            authors = Author.query.all()
+
+        authors_response = [author.to_dict() for author in authors]
+        return jsonify(authors_response), 200
+
+    @authors_bp.route("", methods=["POST"])
+    def post_authors():
+        pass
