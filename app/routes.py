@@ -91,8 +91,35 @@ def handle_book(book_id):
         db.session.commit()
         return jsonify(f"Book #{book.id} deleted successfully."), 200
 
-    @authors_bp.route("", methods=["GET"])
-    def get_authors():
+@authors_bp.route("", methods=["GET", "POST"])
+def get_authors():
+    if request.method == "GET":
+        authors = Author.query.all()
+
+        authors_response = [author.to_dict() for author in authors]
+
+        return jsonify(authors_response), 200
+    
+    elif request.method == "POST":
+        form_data = request.get_json()
+
+        new_author = Author(
+            name=form_data["name"],
+            books=form_data["books"]
+        )
+
+        db.session.add(new_author)
+        db.session.commit()
+
+        return make_response(f"{new_author.name} successfully created", 201)
+
+@authors_bp.route("/<author_id>/books", methods=["GET", "POST"])
+def get_authors_nested(author_id):
+    author = Author.query.get(author_id)
+    if author is None:
+        return make_response("Author not found", 404)
+
+    if request.method == "GET":
         author_name = request.args.get("name")
 
         if author_name:
@@ -102,8 +129,18 @@ def handle_book(book_id):
             authors = Author.query.all()
 
         authors_response = [author.to_dict() for author in authors]
-        return jsonify(authors_response), 200
 
-    @authors_bp.route("", methods=["POST"])
-    def post_authors():
-        pass
+        return jsonify(authors_response), 200
+    
+    if request.method == "POST":
+        form_data = request.get_json()
+        new_book = Book(
+            title=form_data["title"],
+            description=form_data["description"],
+            author=author
+        )
+
+        db.session.add(new_book)
+        db.session.commit()
+
+        return make_response(f"{new_book.title} by {new_book.author.name} successfully created", 201)
