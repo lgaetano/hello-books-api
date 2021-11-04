@@ -10,5 +10,5 @@ class Author(db.Model):
         return {
                 "id": self.id,
                 "name": self.name,
-                "books": self.books
+                "books": [book.title for book in self.books]
             }
