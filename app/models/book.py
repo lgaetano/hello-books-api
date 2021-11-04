@@ -6,6 +6,7 @@ class Book(db.Model):
     description = db.Column(db.String)
     author_id = db.Column(db.Integer, db.ForeignKey('author.id'))
     author = db.relationship("Author", back_populates="books")
+    genre = db.relationship("Genre", secondary="books_genres", backref="books")
 
     COLUMNS = ["title", "description"]
 

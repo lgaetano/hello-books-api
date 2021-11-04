@@ -1,11 +1,12 @@
 from app import db
 from app.models.book import Book
 from app.models.author import Author
+from app.models.genre import Genre
 from flask import Blueprint, abort, json, jsonify, make_response, request
 
 books_bp = Blueprint("books", __name__, url_prefix="/books")
 authors_bp = Blueprint("authors", __name__, url_prefix="/authors")
-
+genres_bp = Blueprint("genres", __name__, url_prefix="/genres")
 
 # def sanitize_data(input_data):
 #     data_types = {
@@ -24,7 +25,7 @@ authors_bp = Blueprint("authors", __name__, url_prefix="/authors")
 
 #     return input_data
 
-
+# BOOKS ---------------------
 @books_bp.route("", methods=["GET"])
 def get_books():
     title = request.args.get("title")
@@ -42,7 +43,6 @@ def get_books():
     
     return jsonify(books_response), 200
 
-
 @books_bp.route("", methods=["POST"])
 def post_books():
     form_data = request.get_json()
@@ -57,6 +57,7 @@ def post_books():
 
     return jsonify(new_book.to_dict()), 201
 
+# BOOK ID ---------------------
 @books_bp.route("/<book_id>", methods=["GET", "PUT", "PATCH", "DELETE"])
 def handle_book(book_id):
     book = Book.query.get(book_id)
@@ -91,12 +92,16 @@ def handle_book(book_id):
         db.session.commit()
         return jsonify(f"Book #{book.id} deleted successfully."), 200
 
+# AUTHORS ---------------------
 @authors_bp.route("", methods=["GET", "POST"])
-def get_authors():
+def handle_authors():
     if request.method == "GET":
         authors = Author.query.all()
 
-        authors_response = [author.to_dict() for author in authors]
+        # authors_response = [author.to_dict() for author in authors]
+        authors_response = []
+        for author in authors:
+            authors_response.append(author.to_dict())
 
         return jsonify(authors_response), 200
     
@@ -104,8 +109,7 @@ def get_authors():
         form_data = request.get_json()
 
         new_author = Author(
-            name=form_data["name"],
-            books=form_data["books"]
+            name=form_data["name"]
         )
 
         db.session.add(new_author)
@@ -113,6 +117,7 @@ def get_authors():
 
         return make_response(f"{new_author.name} successfully created", 201)
 
+# AUTHOR/BOOKS ---------------------
 @authors_bp.route("/<author_id>/books", methods=["GET", "POST"])
 def get_authors_nested(author_id):
     author = Author.query.get(author_id)
@@ -123,14 +128,13 @@ def get_authors_nested(author_id):
         author_name = request.args.get("name")
 
         if author_name:
-            authors = Author.query.filter_by(name=author_name)
+            author = Author.query.filter_by(name=author_name)
 
         else:
-            authors = Author.query.all()
+            author = Author.query.get(author_id)
 
-        authors_response = [author.to_dict() for author in authors]
-
-        return jsonify(authors_response), 200
+        books_response = [book.to_dict() for book in author.books]
+        return jsonify(books_response), 200
     
     if request.method == "POST":
         form_data = request.get_json()
@@ -144,3 +148,46 @@ def get_authors_nested(author_id):
         db.session.commit()
 
         return make_response(f"{new_book.title} by {new_book.author.name} successfully created", 201)
+
+# GENRES ---------------------
+@genres_bp.route("", methods=["GET", "POST"])
+def handle_genres():
+    if request.method == "GET":
+        genres = Genre.query.all()
+        
+        if not genres:
+            return "No genre found", 404
+
+        genre_response = []
+        for genre in genres:
+            genre_response.append({
+                "name": genre.name
+            })
+    
+
+    elif request.method == "POST":
+        form_data = request.get_json()
+
+        new_genre = Genre(name=form_data["name"])
+        db.session.add(new_genre)
+        db.session.commit()
+
+        return jsonify(f"Successfully added {new_genre.name}"), 201
+
+# BOOKS/GENRES ---------------------
+@genres_bp.route("/books/<book_id>/assign_genres", methonds=["PATCH"])
+def assign_genres(book_id):
+    # Query for book_id
+    book = Book.query.get(book_id)
+    if not book:
+        return jsonify("No book found"), 404
+
+    form_data = request.get_json()
+        # {"genres": [1, 2, 3]}
+
+    for id in form_data["genres"]:
+        book.genres.append(Genre.query.get(id))
+
+    db.session.commit()
+
+    return jsonify("Genre successfully added"), 200
